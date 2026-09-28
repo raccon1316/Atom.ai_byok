@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atom.AI – Sales Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Additional inline styles — ink theme (matches dropped UI) */
+        :root {
+            --ink:    #0b0a10;
+            --ink2:   #111019;
+            --ink3:   #17151f;
+            --ink4:   #1e1c28;
+            --ink5:   #252233;
+            --line:   rgba(255,255,255,0.07);
+            --line2:  rgba(255,255,255,0.12);
+            --a:      #7b6eff;
+            --a2:     #4fefd4;
+            --a3:     #ff6e8e;
+            --a4:     #ffc164;
+            --tx:     #f0ecff;
+            --tx2:    #9d98b8;
+            --tx3:    #5c5778;
+            --r:      10px;
+            --r2:     14px;
+            --sh:     0 4px 24px rgba(0,0,0,0.45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            /* 400px popup width, but Chrome side panels are ~360-400px —
+               min(100vw) keeps the layout usable when hosted as a side panel. */
+            width: min(400px, 100vw);
+            height: 620px;
+            background: var(--ink);
+            color: var(--tx);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* subtle grid texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(123,110,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(123,110,255,0.04) 1px, transparent 1px);
+            background-size: 28px 28px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: -80px; left: -60px;
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(123,110,255,0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        .app-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(11,10,16,0.92);
+            backdrop-filter: blur(12px);
+            flex-shrink: 0;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .logo-icon {
+            font-size: 16px;
+        }
+        .logo-text {
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 2.5px;
+            background: linear-gradient(135deg, var(--a), var(--a2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .logo-sub {
+            font-size: 9px;
+            color: var(--tx3);
+            margin-top: 1px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 8px;
+            background: var(--ink3);
+            color: var(--tx2);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+        }
+        .icon-btn:hover {
+            background: var(--ink5);
+            color: var(--tx);
+        }
+
+        /* Main content */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 14px 20px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ink5) transparent;
+        }
+        .main-content::-webkit-scrollbar { width: 4px; }
+        .main-content::-webkit-scrollbar-thumb { background: var(--ink5); border-radius: 99px; }
+
+        /* Tab bar */
+        .tab-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            background: var(--ink2);
+            border: 1px solid var(--line);
+            padding: 4px;
+            border-radius: 999px;
+            width: fit-content;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--tx2);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            background: var(--ink4);
+            color: var(--a);
+        }
+
+        /* Cards */
+        .card {
+            position: relative;
+            background: var(--ink2);
+            border: 1px solid var(--line);
+            border-radius: var(--r2);
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--tx);
+        }
+        .card-title i {
+            font-size: 16px;
+            font-style: normal;
+        }
+
+        /* Inputs */
+        .input-group {
+            margin-bottom: 12px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--tx3);
+            margin-bottom: 5px;
+        }
+
+        /* Auto Task blocklist editor */
+        .blocklist-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        .blocklist-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--ink3);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 4px 6px 4px 10px;
+            font-size: 11px;
+            color: var(--tx);
+        }
+        .blocklist-chip.locked {
+            color: var(--tx2);
+            padding-right: 10px;
+        }
+        .blocklist-remove {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            padding: 0;
+            font-size: 10px;
+            line-height: 1;
+            border: 1px solid var(--line);
+            background: transparent;
+            color: var(--tx2);
+            cursor: pointer;
+        }
+        .blocklist-remove:hover {
+            color: #EF4444;
+            border-color: #EF4444;
+        }
+        input, textarea, select {
+            width: 100%;
+            background: var(--ink3);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            padding: 9px 12px;
+            color: var(--tx);
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        input::placeholder, textarea::placeholder { color: var(--tx3); }
+        input:focus, textarea:focus, select:focus {
+            border-color: rgba(123,110,255,0.5);
+            box-shadow: 0 0 0 3px rgba(123,110,255,0.1);
+        }
+        select option { background: var(--ink3); }
+        button {
+            background: var(--ink4);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            padding: 9px 14px;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--tx);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        button:hover {
+            background: var(--ink5);
+            border-color: var(--line2);
+        }
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: var(--ink4);
+            color: var(--tx2);
+        }
+        .btn-secondary:hover {
+            background: var(--ink5);
+            color: var(--tx);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--a);
+            color: var(--a);
+        }
+        .btn-outline:hover {
+            background: rgba(123,110,255,0.1);
+            border-color: var(--a);
+            color: var(--a);
+        }
+
+        /* Results area */
+        .result-panel {
+            position: relative;
+            z-index: 1;
+            background: var(--ink3);
+            border: 1px solid var(--line);
+            border-radius: var(--r2);
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 12px;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            color: var(--tx2);
+            max-height: 300px;
+            overflow-y: auto;
+            word-break: break-word;
+        }
+
+        /* Usage bar */
+        .usage-bar {
+            background: var(--ink4);
+            border-radius: 99px;
+            height: 4px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        .usage-fill {
+            background: linear-gradient(90deg, var(--a), var(--a2));
+            width: 0%;
+            height: 100%;
+            border-radius: 99px;
+        }
+        .usage-text {
+            font-size: 10px;
+            color: var(--tx3);
+            text-align: right;
+            font-family: monospace;
+        }
+
+        /* Jobs (Phase 5) */
+        .job-card {
+            background: var(--ink3);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .job-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .job-type { font-size: 10px; font-weight: 700; letter-spacing:0.4px; color: var(--tx2); }
+        .job-status { font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing:0.3px; }
+        .job-status.running { background: rgba(123,110,255,0.15); color: var(--a); border: 1px solid rgba(123,110,255,0.3); }
+        .job-status.done { background: rgba(79,239,212,0.12); color: var(--a2); border: 1px solid rgba(79,239,212,0.25); }
+        .job-status.failed { background: rgba(255,110,142,0.12); color: var(--a3); border: 1px solid rgba(255,110,142,0.25); }
+        .job-status.canceled { background: rgba(255,193,100,0.12); color: var(--a4); border: 1px solid rgba(255,193,100,0.25); }
+        .job-urls { font-size: 10px; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .job-step { font-size: 11px; color: var(--tx); line-height: 1.4; }
+        .job-progress-track { height: 4px; background: var(--ink4); border-radius: 99px; overflow:hidden; }
+        .job-progress-fill { height:100%; background: linear-gradient(90deg, var(--a), var(--a2)); transition: width 0.3s ease; }
+        .job-meta { display:flex; justify-content:space-between; font-size:10px; color:var(--tx3); font-family: monospace; }
+        .job-summary { font-size:10.5px; color:#D1C7FF; background: rgba(123,110,255,0.08); border:1px solid rgba(123,110,255,0.18); border-radius:8px; padding:6px 8px; }
+        .job-partial { font-size:10px; color: var(--tx2); }
+        .job-actions { display:flex; gap:6px; flex-wrap:wrap; margin-top:2px; }
+        .job-btn { font-size:10px; padding:5px 9px; border-radius:7px; font-weight:600; cursor:pointer; border:1px solid var(--line); background: var(--ink4); color: var(--tx2); }
+        .job-btn:hover { background: var(--ink5); color: var(--tx); }
+        .job-btn.cancel { border-color: rgba(255,193,100,0.35); color: var(--a4); }
+        .job-btn.retry { border-color: rgba(79,239,212,0.35); color: var(--a2); }
+        .job-btn.view { border-color: rgba(123,110,255,0.35); color: var(--a); }
+
+        /* Deal Room brief + citation chips (claims-ui.js) */
+        .cite-chip {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--a2);
+            background: rgba(79,239,212,0.10);
+            border: 1px solid rgba(79,239,212,0.30);
+            border-radius: 99px;
+            padding: 1px 7px;
+            margin-left: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+        .cite-chip:hover { background: rgba(79,239,212,0.22); }
+        .conf-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            border-radius: 99px;
+            padding: 2px 9px;
+            margin: 6px 0 2px;
+        }
+        .conf-high { color: var(--a2); background: rgba(79,239,212,0.10); border: 1px solid rgba(79,239,212,0.30); }
+        .conf-medium { color: var(--a4); background: rgba(255,193,100,0.10); border: 1px solid rgba(255,193,100,0.30); }
+        .dr-brief { font-size: 12px; line-height: 1.65; color: var(--tx2); }
+        .dr-title { font-size: 13px; font-weight: 800; color: var(--tx); margin-bottom: 2px; }
+        .dr-sec { margin-top: 12px; }
+        .dr-sec-h { font-size: 11px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; color: var(--a); margin-bottom: 5px; }
+        .dr-sub { font-size: 11px; font-weight: 700; color: var(--tx); margin: 7px 0 3px; }
+        .dr-what { color: var(--tx); }
+        .dr-list { margin: 2px 0 2px 16px; padding: 0; }
+        .dr-list li { margin: 5px 0; }
+        .dr-empty { font-size: 11px; font-style: italic; color: var(--tx3); }
+        .dr-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .obj-block { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+        .obj-tag { display: inline-block; font-size: 9px; font-weight: 700; border-radius: 99px; padding: 1px 7px; margin-left: 6px; vertical-align: middle; }
+        .obj-verified { color: var(--a2); background: rgba(79,239,212,0.10); border: 1px solid rgba(79,239,212,0.30); }
+        .obj-inferred { color: var(--tx2); background: rgba(255,255,255,0.04); border: 1px solid var(--line2); }
+        .obj-needs { display: inline-block; font-size: 10px; font-weight: 700; color: var(--a4); margin-left: 6px; }
+        .obj-stale { display: inline-block; font-size: 10px; font-weight: 700; color: var(--tx3); margin-left: 6px; font-style: italic; }
+        .obj-proof { font-size: 11px; color: var(--a2); }
+        .obj-claim, .obj-counter { font-size: 12px; }
+        #refreshObjections { font-size: 10px; padding: 3px 8px; margin-left: 8px; }
+        .obj-edit { font-size: 10px; padding: 3px 8px; margin-top: 4px; }
+        .obj-edit-area textarea { width: 100%; margin-top: 6px; background: var(--ink3); border: 1px solid var(--line2); border-radius: 8px; padding: 8px; color: var(--tx); font-size: 12px; }
+
+        /* Settings panel */
+        .settings-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--ink);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+        }
+        .settings-panel.open {
+            transform: translateX(0);
+        }
+        .settings-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(11,10,16,0.92);
+            backdrop-filter: blur(12px);
+        }
+        .settings-content {
+            position: relative;
+            z-index: 1;
+            padding: 14px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .settings-content::-webkit-scrollbar { width: 4px; }
+        .settings-content::-webkit-scrollbar-thumb { background: var(--ink5); border-radius: 99px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <div class="logo">
+            <span class="logo-icon">⚛️</span>
+            <div>
+                <div class="logo-text">Atom.AI</div>
+                <div class="logo-sub">Sales Intelligence</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Tabs -->
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="home">🏠 Home</button>
+            <button class="tab-btn" data-tab="research">🔍 Research</button>
+            <button class="tab-btn" data-tab="monitor">📡 Monitor</button>
+            <button class="tab-btn" data-tab="notes">📝 Notes</button>
+            <button class="tab-btn" data-tab="calls">📞 Calls</button>
+            <button class="tab-btn" data-tab="history">⏱️ History</button>
+        </div>
+
+        <!-- Home Tab (Main) -->
+        <div id="tab-home" class="tab-content" style="display: block;">
+            <!-- No-key notice (hidden by default, shown when no Groq key is saved) -->
+            <div id="noKeyBanner" class="card" style="display: none; background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.35);">
+                <div style="font-size: 12px; color: #FBBF24;">⚠️ Add your Groq API key in Settings to start</div>
+            </div>
+            <!-- Host-permission banner (Phase 6): shown until optional host access granted -->
+            <div id="hostPermBanner" class="card" style="display: none; background: rgba(123,110,255,0.08); border-color: rgba(123,110,255,0.30);">
+                <div style="font-size: 12px; color: #D1C7FF; line-height: 1.5;">Atom needs access to read page content on competitor sites to build battle cards — one click to grant.</div>
+                <button id="grantHostPermBtn" class="btn-outline" style="width:100%; margin-top:8px; border-color: var(--a); color: var(--a);">Grant host access</button>
+            </div>
+            <!-- LinkedIn auto-brief banner (F2): shown when the active tab is a detected LinkedIn profile/company -->
+            <div id="linkedinBanner" class="card" style="display: none; background: rgba(0,212,168,0.06); border-color: rgba(0,212,168,0.30);">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <div id="linkedinBannerText" style="font-size:12px;color:var(--tx);flex:1;line-height:1.4;"></div>
+                    <button id="linkedinDismissBtn" title="Dismiss for this URL" style="border:none;background:none;color:var(--tx2);cursor:pointer;font-size:12px;padding:2px 4px;">✕</button>
+                </div>
+                <button id="linkedinResearchBtn" style="width:100%;margin-top:8px;">⚡ Research</button>
+            </div>
+            <!-- Triage banner (Phase 9): shown when 3+ same-signature failures in 24h -->
+            <div id="triageBanner" class="card" style="display: none; background: rgba(255,193,100,0.08); border-color: rgba(255,193,100,0.35);">
+                <div style="font-size: 12px; color: #ffc164;">Atom.AI is hitting issues with <span id="triageSignature" style="font-weight:700;"></span>.
+                    <a href="#" id="triageDetailsBtn" style="color: var(--a); text-decoration: underline;">See details</a></div>
+            </div>
+            <!-- Battle Card Section -->
+            <div class="card">
+                <div class="card-title">
+                    <i>⚔️</i> Competitor Battle Card
+                </div>
+                <div id="battleInputs">
+                    <div class="input-group battle-row">
+                        <input type="text" class="battle-url" placeholder="Competitor URL 1">
+                    </div>
+                    <div class="input-group battle-row">
+                        <input type="text" class="battle-url" placeholder="Competitor URL 2">
+                    </div>
+                    <div class="input-group battle-row">
+                        <input type="text" class="battle-url" placeholder="Competitor URL 3">
+                    </div>
+                </div>
+                <button id="addCompetitorBtn" class="btn-outline" style="width: 100%; margin-bottom: 12px;">+ Add competitor</button>
+                <div style="display: flex; gap: 8px;">
+                    <button id="compareOpenTabs" class="btn-secondary" style="flex:1;">📑 Compare Open Tabs</button>
+                    <button id="generateBattleCard" style="flex:1;">⚡ Compare Now</button>
+                </div>
+            </div>
+
+            <!-- Jobs — Service Worker Orchestration (Phase 5) -->
+            <div class="card" id="jobsCard">
+                <div class="card-title" style="justify-content:space-between;">
+                    <span><i>⚙️</i> Jobs</span>
+                    <span id="jobsCount" style="font-size:10px;color:var(--tx3);font-weight:500;">0 jobs</span>
+                </div>
+                <div id="jobsList" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;">
+                    <div style="font-size:11px;color:var(--tx3);text-align:center;padding:12px;">No jobs yet. Start a battle card.</div>
+                </div>
+                <div style="margin-top:10px;display:flex;gap:6px;">
+                    <button id="refreshJobsBtn" class="btn-secondary" style="flex:1;font-size:11px;padding:6px;">↻ Refresh</button>
+                    <button id="clearJobsBtn" class="btn-outline" style="flex:1;font-size:11px;padding:6px;border-color:rgba(255,110,142,0.3);color:#ff6e8e;">Clear finished</button>
+                </div>
+            </div>
+
+            <!-- Quick Company Research (hidden v1 — single-purpose: competitive battle cards) -->
+            <div class="card" data-v1-hide="1">
+                <div class="card-title">
+                    <i>🏢</i> Company Brief
+                </div>
+                <div class="input-group">
+                    <input type="text" id="companyName" placeholder="Company name or URL">
+                </div>
+                <button id="quickResearchBtn" style="width: 100%;">Generate Sales Brief</button>
+            </div>
+
+            <!-- Usage & Status -->
+            <div class="card">
+                <div class="card-title">
+                    <i>📊</i> Daily Usage
+                </div>
+                <div class="usage-bar">
+                    <div class="usage-fill" id="usageFill"></div>
+                </div>
+                <div class="usage-text" id="usageText">0 / 10 calls today</div>
+                <button id="upgradeBtn" class="btn-secondary" style="margin-top: 8px; width: 100%;">⚡ Upgrade to Pro — unlimited calls</button>
+            </div>
+        </div>
+
+        <!-- Research Tab (Advanced tools) -->
+        <div id="tab-research" class="tab-content" style="display: none;">
+            <!-- Deal Room: pre-call brief from open tabs (core single-purpose surface) -->
+            <div class="card" id="dealRoomCard" style="border-color: rgba(123,110,255,0.35);">
+                <div class="card-title"><i>🎯</i> Deal Room — Pre-call Brief</div>
+                <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;">Open the prospect site + competitor tabs, then build one brief. Runs in background — safe to close the popup.</div>
+                <div class="input-group">
+                    <label>Prospect URL (required)</label>
+                    <input type="text" id="dealProspectUrl" placeholder="https://acme.com">
+                </div>
+                <button id="dealRoomBtn" style="width: 100%;">🎯 Build Deal Room Brief</button>
+            </div>
+            <!-- Objection Handler: responses to objections the rep is facing (F3) -->
+            <div class="card" id="objectionHandlerCard">
+                <div class="card-title"><i>🛡️</i> Objection Handler</div>
+                <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;">What did they say? Get three scripts you can read verbatim — reframe, proof point, clarify.</div>
+                <textarea id="objectionInput" style="min-height:56px;" placeholder="e.g. They said our pricing is 3x higher than competitors."></textarea>
+                <button id="objectionHandleBtn" style="margin-top: 8px; width: 100%;">🛡️ Handle It</button>
+                <div id="objectionStatus" style="display:none;margin-top:8px;font-size:11px;color:var(--tx2);"></div>
+                <div id="objectionResult"></div>
+            </div>
+            <div class="card" data-v1-hide="1">
+                <div class="card-title"><i>🔬</i> Deep Research</div>
+                <input type="text" id="deepTopic" placeholder="Topic, company, or market">
+                <button id="deepResearchBtn" style="margin-top: 8px; width: 100%;">Deep Research</button>
+            </div>
+            <div class="card" data-v1-hide="1">
+                <div class="card-title"><i>👤</i> Person Research</div>
+                <input type="text" id="personName" placeholder="Name or LinkedIn URL">
+                <button id="personResearchBtn" style="margin-top: 8px; width: 100%;">Research Person</button>
+            </div>
+            <div class="card" data-v1-hide="1">
+                <div class="card-title"><i>📊</i> Market Intelligence</div>
+                <input type="text" id="marketTopic" placeholder="Industry">
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button id="marketSizeBtn" class="btn-secondary">Size</button>
+                    <button id="marketTrendsBtn" class="btn-secondary">Trends</button>
+                    <button id="marketPlayersBtn" class="btn-secondary">Players</button>
+                </div>
+            </div>
+
+            <!-- Auto Task -->
+            <div class="card" id="autoTaskCard">
+                <div class="card-title"><i>🤖</i> Auto Task</div>
+                <textarea id="prompt" style="min-height:56px;" placeholder="Describe a task… e.g. open youtube.com and play 'Shape of You', or extract all emails from this page"></textarea>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button id="enhancePrompt" class="btn-secondary" style="flex:1;" title="Use AI to improve this task description">✨ Enhance</button>
+                    <button id="autotask" style="flex:1;">▶ Run Auto Task</button>
+                    <button id="agentStop" class="btn-secondary" style="flex:1; display:none;">⏹ Stop</button>
+                </div>
+                <div id="loader" style="display:none; margin-top:8px; font-size:11px; color:var(--tx2);">⚡ Working...</div>
+
+                <!-- Recipes, quota line and timeline are static markup rather than
+                     JS-injected: they then exist from first paint, so an
+                     autoTaskRun arriving in the first few hundred ms (from
+                     storage.onChanged) is rendered instead of dropped. popup.js
+                     still carries the injection as a fallback and skips it when
+                     #autoTaskTimeline is already present, so nothing is doubled. -->
+                <div id="autoTaskRecipes" style="display:flex; gap:6px; align-items:center; margin-top:8px; font-size:11px;">
+                    <select id="recipeSelect" style="flex:1; min-width:0; font-size:11px; padding:4px; background:rgba(0,0,0,0.25); color:var(--tx2); border:1px solid rgba(255,255,255,0.1); border-radius:6px;">
+                        <option value="">No saved recipes</option>
+                    </select>
+                    <button id="recipeRun" class="btn-secondary" style="font-size:11px; padding:4px 8px;">▶ Run</button>
+                    <button id="recipeSave" class="btn-secondary" style="font-size:11px; padding:4px 8px; display:none;">Save as recipe</button>
+                </div>
+                <div id="autoTaskQuota" style="margin-top:6px; font-size:11px; color:var(--a,#6c63ff); text-align:right;"></div>
+                <div id="autoTaskTimeline" style="max-height:180px; overflow-y:auto; margin-top:8px; padding:8px; background:rgba(0,0,0,0.2); border-radius:6px; font-size:11px;">
+                    <div style="font-size:11px; color:var(--tx3); text-align:center; padding:8px;">No task yet.</div>
+                </div>
+            </div>
+
+            <!-- Quick Extraction -->
+            <div class="card" data-v1-hide="1">
+                <div class="card-title"><i>⚡</i> Quick Extraction</div>
+                <div class="chips" style="display:flex; flex-wrap:wrap; gap:6px;">
+                    <span class="chip auto-chip" data-action="emails">📧 Emails</span>
+                    <span class="chip auto-chip" data-action="phones">📞 Phones</span>
+                    <span class="chip auto-chip" data-action="prices">💰 Prices</span>
+                    <span class="chip auto-chip" data-action="techstack">🛠 Tech Stack</span>
+                    <span class="chip auto-chip" data-action="extractleads">📋 Leads</span>
+                    <span class="chip auto-chip" data-action="extractcsv">📊 CSV</span>
+                    <span class="chip auto-chip" data-action="links">🔗 Links</span>
+                    <span class="chip auto-chip" data-action="qualify">📊 Qualify</span>
+                    <span class="chip auto-chip" data-action="readmode">📖 Read</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monitor Tab -->
+        <div id="tab-monitor" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title"><i>👁️</i> Competitor Watchlist</div>
+                <!-- empty state shown when the watchlist is empty; monitor.js
+                     toggles its display and guards for its absence -->
+                <div id="monitorEmpty" style="display:none; font-size:11px; color:var(--tx3); text-align:center; padding:16px 0;">
+                    No competitors added yet. Enter a name below and click Add.
+                </div>
+                <div id="monitorList"></div>
+                <div class="input-group">
+                    <input type="text" id="monitorName" placeholder="Competitor name">
+                    <input type="text" id="monitorUrl" placeholder="Website URL (optional)" style="margin-top: 8px;">
+                </div>
+                <button id="addMonitorBtn">Add Competitor</button>
+                <button id="checkAllMonitorsBtn" class="btn-secondary" style="margin-top: 8px; width: 100%;">Check All Now</button>
+                <div id="monitorResult" class="result-panel" style="margin-top: 12px;"></div>
+            </div>
+        </div>
+
+        <!-- Notes Tab -->
+        <div id="tab-notes" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title"><i>📌</i> Saved Notes</div>
+                <input type="text" id="notesSearch" placeholder="Search notes...">
+                <!-- empty state shown when no notes are saved; notes.js toggles
+                     its display and guards for its absence -->
+                <div id="notesEmpty" style="display:none; font-size:11px; color:var(--tx3); text-align:center; padding:16px 0;">
+                    No saved notes yet. Use the Save button after any research result.
+                </div>
+                <div id="notesList"></div>
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button id="notesExport" class="btn-secondary" style="flex:1;font-size:11px;padding:6px;">⬇ Export Notes</button>
+                    <button id="notesClearAll" class="btn-outline" style="flex:1;font-size:11px;padding:6px;border-color:rgba(255,110,142,0.3);color:#ff6e8e;">🗑 Clear All</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="tab-history" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title" style="justify-content:space-between;"><i>🕘</i> Research History
+                    <select id="historyWinLossFilter" style="font-size:10px;padding:2px 6px;border-radius:6px;border:1px solid var(--line);background:var(--ink3);color:var(--tx);">
+                        <option value="all">All (Win/Loss)</option>
+                        <option value="won">Won only</option>
+                        <option value="lost">Lost only</option>
+                    </select>
+                </div>
+                <input type="text" id="historySearch" placeholder="Search...">
+                <div id="historyList"></div>
+                <div style="display:flex;gap:8px;margin-top:8px;">
+                    <button id="exportWinLossBtn" class="btn-secondary" style="font-size:11px;padding:6px 10px;">Export Win/Loss Log</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calls Tab (F5): transcript → structured deal breakdown -->
+        <div id="tab-calls" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title"><i>📞</i> Call Analyzer</div>
+                <div style="font-size:11px;color:var(--tx2);margin-bottom:10px;">Paste a call transcript or drop a .txt/.vtt/.srt export from Gong/Otter/Zoom. The full text is analyzed — nothing is truncated.</div>
+                <textarea id="callTranscript" style="min-height:140px;" placeholder="Paste the transcript here, or drop the .txt file…"></textarea>
+                <button id="analyzeCallBtn" style="margin-top:8px;width:100%;">📞 Analyze Call</button>
+                <div id="callStatus" style="display:none;margin-top:8px;font-size:11px;color:var(--tx2);"></div>
+                <div id="callResult"></div>
+            </div>
+        </div>
+
+        <!-- Global result panel – visible on any tab -->
+        <div id="globalResult" class="result-panel" style="display: none;"></div>
+    </div>
+
+    <!-- Settings Panel (Overlay) -->
+    <div id="settingsPanel" class="settings-panel">
+        <div class="settings-header">
+            <button class="icon-btn" id="closeSettingsBtn" style="margin-right: 12px;">←</button>
+            <span style="font-weight: 600;">Settings</span>
+        </div>
+        <div class="settings-content">
+            <div class="card">
+                <div class="card-title">🔑 Groq API Key</div>
+                <div class="input-group">
+                    <label>API Key</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="password" id="settingsApiKey" placeholder="gsk_..." autocomplete="off">
+                        <button id="toggleApiKeyBtn" type="button" style="width:auto; flex-shrink:0;" title="Show/hide key">👁</button>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="addKeyBtn" style="flex:1;">Enter Key</button>
+                    <button id="verifyKeyBtn" class="btn-secondary" style="flex:1;">Verify Connection</button>
+                </div>
+                <div id="connectionStatus" style="display:flex; align-items:center; gap:6px; margin-top:10px;">
+                    <span id="connectionLight" style="width:10px; height:10px; border-radius:50%; background:var(--tx3);"></span>
+                    <span id="connectionText" style="font-size:11px; color:var(--tx2);">Not connected</span>
+                </div>
+                <div id="apiKeyStatus" style="font-size:11px;color:#9CA3AF;margin-top:6px;"></div>
+                <button id="clearApiKeyBtn" class="btn-outline" type="button" style="color:#EF4444;border-color:#EF4444; width:100%; margin-top:8px;">Clear Key</button>
+                <a href="https://console.groq.com/keys" target="_blank" style="font-size:11px;">Get a Groq API key →</a>
+            </div>
+            <div class="card">
+                <div class="card-title">🔗 Webhook URL</div>
+                <input type="text" id="webhookUrl" placeholder="Zapier / Make webhook URL">
+                <button id="saveSettingsBtn" style="margin-top: 12px;">Save</button>
+            </div>
+            <div class="card">
+                <div class="card-title">💬 Slack Webhook URL</div>
+                <input type="text" id="slackWebhookUrl" placeholder="https://hooks.slack.com/services/...">
+                <div style="font-size:11px;color:var(--tx2);margin-top:6px;">Enables “Share to Slack” on battle cards. Posts Block Kit, no backend.</div>
+            </div>
+            <div class="card">
+                <div class="card-title">🔗 CRM (HubSpot)</div>
+                <div class="input-group">
+                    <label>HubSpot Private App token</label>
+                    <input type="password" id="hubspotToken" placeholder="pat-na1-…" autocomplete="off">
+                </div>
+                <div style="font-size:11px;color:var(--tx2);margin-top:6px;">Needs scopes: crm.objects.companies.write + crm.objects.notes.write. Enables “→ HubSpot” on every brief.</div>
+                <button id="saveHubspotBtn" class="btn-secondary" style="margin-top:8px;">Save CRM token</button>
+                <div id="hubspotStatus" style="font-size:11px;color:var(--tx2);margin-top:6px;"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">🏷️ Your Product</div>
+                <div class="input-group">
+                    <label>Your product URL (trigger banner suppressed here)</label>
+                    <input type="text" id="ownProductUrl" placeholder="https://yourapp.com">
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">🔄 Data Management</div>
+                <button id="exportDataBtn" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">Export All Data</button>
+                <button id="importDataBtn" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">Import Data</button>
+                <input type="file" id="importFile" accept="application/json" style="display: none;">
+                <button id="resetExtensionBtn" class="btn-outline" style="color: #EF4444; border-color: #EF4444;">Reset Extension</button>
+            </div>
+            <div class="card">
+                <div class="card-title">🛡️ Auto Task Blocklist</div>
+                <div style="font-size:11px;color:var(--tx2);line-height:1.6;margin-bottom:10px;">
+                    Banking and payment sites are blocked by default. Auto Task will refuse to
+                    navigate to, or act on, any domain on this list. Built-in domains (🔒) cannot be removed.
+                </div>
+                <div class="input-group">
+                    <label>Always blocked (built in)</label>
+                    <div class="blocklist-box" id="blocklistDefaults"></div>
+                </div>
+                <div class="input-group">
+                    <label>Your extra blocked domains</label>
+                    <div class="blocklist-box" id="blocklistCustom"></div>
+                </div>
+                <div class="input-group" style="margin-bottom:6px;">
+                    <label>Add a domain</label>
+                    <input type="text" id="blocklistAddInput" placeholder="example.com" autocomplete="off">
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="blocklistAddBtn" class="btn-secondary" type="button" style="flex:1;">Add to blocklist</button>
+                </div>
+                <div id="blocklistStatus" style="font-size:11px;color:var(--tx2);margin-top:6px;"></div>
+            </div>
+            <div class="card">
+                <div class="card-title">🔒 Privacy</div>
+                <div style="font-size:11px;color:var(--tx2);line-height:1.6;">Your API key stays on-device in <code>chrome.storage.local</code>. Page content is only sent to your configured LLM (Groq). Nothing else leaves the device. <a href="#" id="privacyLink" style="color:var(--a);text-decoration:underline;">Read full policy — PRIVACY.md</a></div>
+            </div>
+            <div class="card">
+                <div class="card-title">🐞 Debug Log</div>
+                <div id="debugLogBox" style="background: var(--ink3); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto;"></div>
+                <button id="clearDebugLogBtn" class="btn-outline" style="margin-top: 8px;">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+</body>
+</html>

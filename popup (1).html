@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atom.AI – Sales Intelligence</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Additional inline styles — ink theme (matches dropped UI) */
+        :root {
+            --ink:    #0b0a10;
+            --ink2:   #111019;
+            --ink3:   #17151f;
+            --ink4:   #1e1c28;
+            --ink5:   #252233;
+            --line:   rgba(255,255,255,0.07);
+            --line2:  rgba(255,255,255,0.12);
+            --a:      #7b6eff;
+            --a2:     #4fefd4;
+            --a3:     #ff6e8e;
+            --a4:     #ffc164;
+            --tx:     #f0ecff;
+            --tx2:    #9d98b8;
+            --tx3:    #5c5778;
+            --r:      10px;
+            --r2:     14px;
+            --sh:     0 4px 24px rgba(0,0,0,0.45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 400px;
+            height: 620px;
+            background: var(--ink);
+            color: var(--tx);
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* subtle grid texture */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(123,110,255,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(123,110,255,0.04) 1px, transparent 1px);
+            background-size: 28px 28px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            top: -80px; left: -60px;
+            width: 280px; height: 280px;
+            background: radial-gradient(circle, rgba(123,110,255,0.12) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        .app-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(11,10,16,0.92);
+            backdrop-filter: blur(12px);
+            flex-shrink: 0;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+        .logo-icon {
+            font-size: 16px;
+        }
+        .logo-text {
+            font-weight: 800;
+            font-size: 13px;
+            letter-spacing: 2.5px;
+            background: linear-gradient(135deg, var(--a), var(--a2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .logo-sub {
+            font-size: 9px;
+            color: var(--tx3);
+            margin-top: 1px;
+        }
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .icon-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 8px;
+            background: var(--ink3);
+            color: var(--tx2);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s, color 0.15s;
+        }
+        .icon-btn:hover {
+            background: var(--ink5);
+            color: var(--tx);
+        }
+
+        /* Main content */
+        .main-content {
+            position: relative;
+            z-index: 1;
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 14px 20px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--ink5) transparent;
+        }
+        .main-content::-webkit-scrollbar { width: 4px; }
+        .main-content::-webkit-scrollbar-thumb { background: var(--ink5); border-radius: 99px; }
+
+        /* Tab bar */
+        .tab-bar {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 14px;
+            background: var(--ink2);
+            border: 1px solid var(--line);
+            padding: 4px;
+            border-radius: 999px;
+            width: fit-content;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 6px 9px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--tx2);
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            background: var(--ink4);
+            color: var(--a);
+        }
+
+        /* Cards */
+        .card {
+            position: relative;
+            background: var(--ink2);
+            border: 1px solid var(--line);
+            border-radius: var(--r2);
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--tx);
+        }
+        .card-title i {
+            font-size: 16px;
+            font-style: normal;
+        }
+
+        /* Inputs */
+        .input-group {
+            margin-bottom: 12px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--tx3);
+            margin-bottom: 5px;
+        }
+        input, textarea, select {
+            width: 100%;
+            background: var(--ink3);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            padding: 9px 12px;
+            color: var(--tx);
+            font-size: 12px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        input::placeholder, textarea::placeholder { color: var(--tx3); }
+        input:focus, textarea:focus, select:focus {
+            border-color: rgba(123,110,255,0.5);
+            box-shadow: 0 0 0 3px rgba(123,110,255,0.1);
+        }
+        select option { background: var(--ink3); }
+        button {
+            background: var(--ink4);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            padding: 9px 14px;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--tx);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        button:hover {
+            background: var(--ink5);
+            border-color: var(--line2);
+        }
+        button:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: var(--ink4);
+            color: var(--tx2);
+        }
+        .btn-secondary:hover {
+            background: var(--ink5);
+            color: var(--tx);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--a);
+            color: var(--a);
+        }
+        .btn-outline:hover {
+            background: rgba(123,110,255,0.1);
+            border-color: var(--a);
+            color: var(--a);
+        }
+
+        /* Results area */
+        .result-panel {
+            position: relative;
+            z-index: 1;
+            background: var(--ink3);
+            border: 1px solid var(--line);
+            border-radius: var(--r2);
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 12px;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            color: var(--tx2);
+            max-height: 300px;
+            overflow-y: auto;
+            word-break: break-word;
+        }
+
+        /* Usage bar */
+        .usage-bar {
+            background: var(--ink4);
+            border-radius: 99px;
+            height: 4px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        .usage-fill {
+            background: linear-gradient(90deg, var(--a), var(--a2));
+            width: 0%;
+            height: 100%;
+            border-radius: 99px;
+        }
+        .usage-text {
+            font-size: 10px;
+            color: var(--tx3);
+            text-align: right;
+            font-family: monospace;
+        }
+
+        /* Settings panel */
+        .settings-panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--ink);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+        }
+        .settings-panel.open {
+            transform: translateX(0);
+        }
+        .settings-header {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(11,10,16,0.92);
+            backdrop-filter: blur(12px);
+        }
+        .settings-content {
+            position: relative;
+            z-index: 1;
+            padding: 14px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .settings-content::-webkit-scrollbar { width: 4px; }
+        .settings-content::-webkit-scrollbar-thumb { background: var(--ink5); border-radius: 99px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <div class="logo">
+            <span class="logo-icon">⚛️</span>
+            <div>
+                <div class="logo-text">Atom.AI</div>
+                <div class="logo-sub">Sales Intelligence</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <!-- Tabs -->
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="home">🏠 Home</button>
+            <button class="tab-btn" data-tab="research">🔍 Research</button>
+            <button class="tab-btn" data-tab="monitor">📡 Monitor</button>
+            <button class="tab-btn" data-tab="notes">📝 Notes</button>
+            <button class="tab-btn" data-tab="history">⏱️ History</button>
+        </div>
+
+        <!-- Home Tab (Main) -->
+        <div id="tab-home" class="tab-content" style="display: block;">
+            <!-- No-key notice (hidden by default, shown when no Groq key is saved) -->
+            <div id="noKeyBanner" class="card" style="display: none; background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.35);">
+                <div style="font-size: 12px; color: #FBBF24;">⚠️ Add your Groq API key in Settings to start</div>
+            </div>
+            <!-- Battle Card Section -->
+            <div class="card">
+                <div class="card-title">
+                    <i>⚔️</i> Competitor Battle Card
+                </div>
+                <div id="battleInputs">
+                    <div class="input-group battle-row">
+                        <input type="text" class="battle-url" placeholder="Competitor URL 1">
+                    </div>
+                    <div class="input-group battle-row">
+                        <input type="text" class="battle-url" placeholder="Competitor URL 2">
+                    </div>
+                    <div class="input-group battle-row">
+                        <input type="text" class="battle-url" placeholder="Competitor URL 3">
+                    </div>
+                </div>
+                <button id="addCompetitorBtn" class="btn-outline" style="width: 100%; margin-bottom: 12px;">+ Add competitor</button>
+                <div style="display: flex; gap: 8px;">
+                    <button id="compareOpenTabs" class="btn-secondary" style="flex:1;">📑 Compare Open Tabs</button>
+                    <button id="generateBattleCard" style="flex:1;">⚡ Compare Now</button>
+                </div>
+            </div>
+
+            <!-- Quick Company Research -->
+            <div class="card">
+                <div class="card-title">
+                    <i>🏢</i> Company Brief
+                </div>
+                <div class="input-group">
+                    <input type="text" id="companyName" placeholder="Company name or URL">
+                </div>
+                <button id="quickResearchBtn" style="width: 100%;">Generate Sales Brief</button>
+            </div>
+
+            <!-- Usage & Status -->
+            <div class="card">
+                <div class="card-title">
+                    <i>📊</i> Daily Usage
+                </div>
+                <div class="usage-bar">
+                    <div class="usage-fill" id="usageFill"></div>
+                </div>
+                <div class="usage-text" id="usageText">0 / 10 calls today</div>
+            </div>
+        </div>
+
+        <!-- Research Tab (Advanced tools) -->
+        <div id="tab-research" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title"><i>🔬</i> Deep Research</div>
+                <input type="text" id="deepTopic" placeholder="Topic, company, or market">
+                <button id="deepResearchBtn" style="margin-top: 8px; width: 100%;">Deep Research</button>
+            </div>
+            <div class="card">
+                <div class="card-title"><i>👤</i> Person Research</div>
+                <input type="text" id="personName" placeholder="Name or LinkedIn URL">
+                <button id="personResearchBtn" style="margin-top: 8px; width: 100%;">Research Person</button>
+            </div>
+            <div class="card">
+                <div class="card-title"><i>📊</i> Market Intelligence</div>
+                <input type="text" id="marketTopic" placeholder="Industry">
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button id="marketSizeBtn" class="btn-secondary">Size</button>
+                    <button id="marketTrendsBtn" class="btn-secondary">Trends</button>
+                    <button id="marketPlayersBtn" class="btn-secondary">Players</button>
+                </div>
+            </div>
+
+            <!-- Auto Task -->
+            <div class="card">
+                <div class="card-title"><i>🤖</i> Auto Task</div>
+                <textarea id="prompt" style="min-height:56px;" placeholder="Describe a task… e.g. open youtube.com and play 'Shape of You', or extract all emails from this page"></textarea>
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <button id="autotask" style="flex:1;">▶ Run Auto Task</button>
+                    <button id="agentStop" class="btn-secondary" style="flex:1; display:none;">⏹ Stop</button>
+                </div>
+                <div id="loader" style="display:none; margin-top:8px; font-size:11px; color:var(--tx2);">⚡ Working...</div>
+            </div>
+
+            <!-- Quick Extraction -->
+            <div class="card">
+                <div class="card-title"><i>⚡</i> Quick Extraction</div>
+                <div class="chips" style="display:flex; flex-wrap:wrap; gap:6px;">
+                    <span class="chip auto-chip" data-action="emails">📧 Emails</span>
+                    <span class="chip auto-chip" data-action="phones">📞 Phones</span>
+                    <span class="chip auto-chip" data-action="prices">💰 Prices</span>
+                    <span class="chip auto-chip" data-action="techstack">🛠 Tech Stack</span>
+                    <span class="chip auto-chip" data-action="extractleads">📋 Leads</span>
+                    <span class="chip auto-chip" data-action="extractcsv">📊 CSV</span>
+                    <span class="chip auto-chip" data-action="links">🔗 Links</span>
+                    <span class="chip auto-chip" data-action="readmode">📖 Read</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monitor Tab -->
+        <div id="tab-monitor" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title"><i>👁️</i> Competitor Watchlist</div>
+                <div id="monitorList"></div>
+                <div class="input-group">
+                    <input type="text" id="monitorName" placeholder="Competitor name">
+                    <input type="text" id="monitorUrl" placeholder="Website URL (optional)" style="margin-top: 8px;">
+                </div>
+                <button id="addMonitorBtn">Add Competitor</button>
+                <button id="checkAllMonitorsBtn" class="btn-secondary" style="margin-top: 8px; width: 100%;">Check All Now</button>
+                <div id="monitorResult" class="result-panel" style="margin-top: 12px;"></div>
+            </div>
+        </div>
+
+        <!-- Notes Tab -->
+        <div id="tab-notes" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title"><i>📌</i> Saved Notes</div>
+                <input type="text" id="notesSearch" placeholder="Search notes...">
+                <div id="notesList"></div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="tab-history" class="tab-content" style="display: none;">
+            <div class="card">
+                <div class="card-title"><i>🕘</i> Research History</div>
+                <input type="text" id="historySearch" placeholder="Search...">
+                <div id="historyList"></div>
+            </div>
+        </div>
+
+        <!-- Global result panel – visible on any tab -->
+        <div id="globalResult" class="result-panel" style="display: none;"></div>
+    </div>
+
+    <!-- Settings Panel (Overlay) -->
+    <div id="settingsPanel" class="settings-panel">
+        <div class="settings-header">
+            <button class="icon-btn" id="closeSettingsBtn" style="margin-right: 12px;">←</button>
+            <span style="font-weight: 600;">Settings</span>
+        </div>
+        <div class="settings-content">
+            <div class="card">
+                <div class="card-title">🔑 Groq API Key</div>
+                <div class="input-group">
+                    <label>API Key</label>
+                    <div style="display:flex; gap:6px;">
+                        <input type="password" id="settingsApiKey" placeholder="gsk_..." autocomplete="off">
+                        <button id="toggleApiKeyBtn" type="button" style="width:auto; flex-shrink:0;" title="Show/hide key">👁</button>
+                    </div>
+                </div>
+                <div class="input-group" style="margin-top:10px;">
+                    <label>Groq Model</label>
+                    <select id="settingsModel">
+                        <option value="openai/gpt-oss-20b">OpenAI GPT-OSS 20B (recommended)</option>
+                        <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+                    </select>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button id="addKeyBtn" style="flex:1;">Enter Key</button>
+                    <button id="verifyKeyBtn" class="btn-secondary" style="flex:1;">Verify Connection</button>
+                </div>
+                <div id="connectionStatus" style="display:flex; align-items:center; gap:6px; margin-top:10px;">
+                    <span id="connectionLight" style="width:10px; height:10px; border-radius:50%; background:var(--tx3);"></span>
+                    <span id="connectionText" style="font-size:11px; color:var(--tx2);">Not connected</span>
+                </div>
+                <div id="apiKeyStatus" style="font-size:11px;color:#9CA3AF;margin-top:6px;"></div>
+                <button id="clearApiKeyBtn" class="btn-outline" type="button" style="color:#EF4444;border-color:#EF4444; width:100%; margin-top:8px;">Clear Key</button>
+                <a href="https://console.groq.com/keys" target="_blank" style="font-size:11px;">Get a Groq API key →</a>
+            </div>
+            <div class="card">
+                <div class="card-title">🔗 Webhook URL</div>
+                <input type="text" id="webhookUrl" placeholder="Zapier / Make webhook URL">
+                <button id="saveSettingsBtn" style="margin-top: 12px;">Save</button>
+            </div>
+            <div class="card">
+                <div class="card-title">🔄 Data Management</div>
+                <button id="exportDataBtn" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">Export All Data</button>
+                <button id="importDataBtn" class="btn-secondary" style="width: 100%; margin-bottom: 8px;">Import Data</button>
+                <input type="file" id="importFile" accept="application/json" style="display: none;">
+                <button id="resetExtensionBtn" class="btn-outline" style="color: #EF4444; border-color: #EF4444;">Reset Extension</button>
+            </div>
+            <div class="card">
+                <div class="card-title">🐞 Debug Log</div>
+                <div id="debugLogBox" style="background: var(--ink3); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-family: monospace; font-size: 11px; max-height: 150px; overflow-y: auto;"></div>
+                <button id="clearDebugLogBtn" class="btn-outline" style="margin-top: 8px;">Clear Log</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+</body>
+</html>

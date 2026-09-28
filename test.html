@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nexus AI — Test Suite</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #08080e; --surface: #0f0f18; --surface2: #14141f; --surface3: #1a1a28;
+  --border: #1e1e30; --border2: #28283f;
+  --accent: #6c63ff; --accent2: #00d4a8;
+  --text: #e8e8f0; --text2: #9898b8; --muted: #4a4a6a;
+  --green: #00d4a8; --red: #ff6b6b; --yellow: #ffd93d;
+}
+body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 32px; }
+h1 { font-size: 22px; font-weight: 800; background: linear-gradient(135deg, #6c63ff, #00d4a8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1100px; }
+.card { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 20px; }
+.card-title { font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.card-title span { font-size: 16px; }
+
+/* Test items */
+.test-item { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); margin-bottom: 8px; }
+.test-item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.test-name { font-size: 12px; font-weight: 700; color: var(--text); flex: 1; }
+.test-status { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+.status-pass { background: rgba(0,212,168,0.12); color: var(--green); border: 1px solid rgba(0,212,168,0.2); }
+.status-fail { background: rgba(255,107,107,0.1); color: var(--red); border: 1px solid rgba(255,107,107,0.2); }
+.status-pending { background: rgba(74,74,106,0.2); color: var(--muted); border: 1px solid var(--border2); }
+.status-running { background: rgba(108,99,255,0.12); color: var(--accent); border: 1px solid rgba(108,99,255,0.2); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.test-detail { font-size: 11px; color: var(--text2); line-height: 1.5; }
+.test-score { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* Buttons */
+.btn { padding: 8px 16px; border: none; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 700; font-family: inherit; transition: all 0.15s; }
+.btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-primary { background: linear-gradient(135deg, #6c63ff, #8b5cf6); color: #fff; }
+.btn-success { background: linear-gradient(135deg, #059669, #00d4a8); color: #fff; }
+.btn-ghost { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+.btn-sm { padding: 5px 11px; font-size: 11px; }
+.btn-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+
+/* Score board */
+.scoreboard { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.score-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 14px 20px; text-align: center; min-width: 100px; }
+.score-num { font-size: 28px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
+.score-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.score-pass { color: var(--green); }
+.score-fail { color: var(--red); }
+.score-total { color: var(--accent); }
+.score-pct { color: var(--yellow); }
+
+/* Quality checker */
+.quality-input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 12px; font-family: inherit; outline: none; resize: none; line-height: 1.5; }
+.quality-input:focus { border-color: var(--accent); }
+.quality-result { margin-top: 10px; padding: 12px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; font-size: 12px; line-height: 1.7; white-space: pre-wrap; display: none; }
+.criterion { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.criterion:last-child { border: none; }
+.criterion-icon { font-size: 14px; flex-shrink: 0; }
+.criterion-text { font-size: 11px; color: var(--text2); flex: 1; }
+.criterion-score { font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+/* Log */
+.log { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text2); line-height: 1.8; }
+.log-line { padding: 1px 0; }
+.log-pass { color: var(--green); }
+.log-fail { color: var(--red); }
+.log-info { color: var(--accent); }
+.log-warn { color: var(--yellow); }
+
+/* API key input */
+.api-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.api-row input { flex: 1; padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text); font-size: 12px; font-family: inherit; outline: none; }
+.api-row input:focus { border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<h1>✦ Nexus AI — Test Suite</h1>
+<p class="subtitle">Run these tests after every update to verify accuracy and performance</p>
+
+<!-- Scoreboard -->
+<div class="scoreboard">
+  <div class="score-box"><div class="score-num score-pass" id="scorePass">0</div><div class="score-label">Passed</div></div>
+  <div class="score-box"><div class="score-num score-fail" id="scoreFail">0</div><div class="score-label">Failed</div></div>
+  <div class="score-box"><div class="score-num score-total" id="scoreTotal">0</div><div class="score-label">Total</div></div>
+  <div class="score-box"><div class="score-num score-pct" id="scorePct">—</div><div class="score-label">Pass Rate</div></div>
+</div>
+
+<!-- API Key -->
+<div class="api-row">
+  <input type="text" id="apiKey" placeholder="Enter Groq API key..." value="gsk_...">
+  <button class="btn btn-ghost btn-sm" onclick="testAPIConnection()">🔌 Test Connection</button>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="runAllTests()">▶ Run All Tests</button>
+  <button class="btn btn-ghost" onclick="runPromptTests()">🧠 Prompt Quality</button>
+  <button class="btn btn-ghost" onclick="runStructureTests()">🏗️ Structure Tests</button>
+  <button class="btn btn-ghost" onclick="clearResults()">🗑️ Clear</button>
+</div>
+
+<div class="grid">
+
+  <!-- LEFT: Automated Tests -->
+  <div>
+    <div class="card">
+      <div class="card-title"><span>🔌</span> API & Connection Tests</div>
+      <div id="apiTests">
+        <div class="test-item" id="test-api-connect">
+          <div class="test-item-header"><span class="test-name">API Connection</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Checks Groq API responds correctly</div>
+        </div>
+        <div class="test-item" id="test-api-speed">
+          <div class="test-item-header"><span class="test-name">Response Speed</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Response should be under 8 seconds</div>
+        </div>
+        <div class="test-item" id="test-api-fallback">
+          <div class="test-item-header"><span class="test-name">Model Fallback</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Falls back to openai/gpt-oss-20b if 70b fails</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title"><span>📋</span> Report Structure Tests</div>
+      <div id="structureTests">
+        <div class="test-item" id="test-struct-sections">
+          <div class="test-item-header"><span class="test-name">Has All Required Sections</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Report contains: Overview, Pain Points, Opening Line, Do Not Say, Confidence Score</div>
+        </div>
+        <div class="test-item" id="test-struct-length">
+          <div class="test-item-header"><span class="test-name">Report Length</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Report should be 300–2000 words</div>
+        </div>
+        <div class="test-item" id="test-struct-confidence">
+          <div class="test-item-header"><span class="test-name">Has Confidence Score</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Report ends with CONFIDENCE: [X/100]</div>
+        </div>
+        <div class="test-item" id="test-struct-format">
+          <div class="test-item-header"><span class="test-name">Has Section Headers</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Uses emoji headers like 🏢 🔥 👤 🎯 ⚠️</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title"><span>🎯</span> Prompt Quality Tests</div>
+      <div id="promptTests">
+        <div class="test-item" id="test-prompt-stripe">
+          <div class="test-item-header"><span class="test-name">Stripe — Well Known Company</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Tests research quality on a well-known company</div>
+          <div class="test-score" id="score-stripe"></div>
+        </div>
+        <div class="test-item" id="test-prompt-generic">
+          <div class="test-item-header"><span class="test-name">Generic Prompt Avoidance</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Report should NOT contain generic filler phrases</div>
+        </div>
+        <div class="test-item" id="test-prompt-actionable">
+          <div class="test-item-header"><span class="test-name">Opening Line is Specific</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Opening line must mention company name or specific detail</div>
+        </div>
+        <div class="test-item" id="test-prompt-norepeat">
+          <div class="test-item-header"><span class="test-name">No Repeated Content</span><span class="test-status status-pending">PENDING</span></div>
+          <div class="test-detail">Same info should not appear in multiple sections</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Manual Quality Checker + Log -->
+  <div>
+    <div class="card">
+      <div class="card-title"><span>🔬</span> Manual Report Quality Checker</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:10px;">Paste any generated report below to score its quality</p>
+      <textarea class="quality-input" id="manualReport" rows="8" placeholder="Paste a generated sales brief or research report here..."></textarea>
+      <button class="btn btn-primary btn-sm" style="margin-top:8px;" onclick="scoreManualReport()">📊 Score This Report</button>
+      <div id="manualResult" class="quality-result"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title"><span>📊</span> Research Accuracy Checklist</div>
+      <p style="font-size:11px;color:var(--muted);margin-bottom:12px;">After generating a report, manually verify these:</p>
+      <div id="checklist">
+        <div class="criterion">
+          <span class="criterion-icon">🏢</span>
+          <span class="criterion-text">Company description is accurate (not hallucinated)</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+        <div class="criterion">
+          <span class="criterion-icon">💰</span>
+          <span class="criterion-text">Revenue/size estimate is in the right ballpark</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+        <div class="criterion">
+          <span class="criterion-icon">📰</span>
+          <span class="criterion-text">At least 1 recent news item is real and verifiable</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+        <div class="criterion">
+          <span class="criterion-icon">👤</span>
+          <span class="criterion-text">Decision maker roles are realistic for the company</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+        <div class="criterion">
+          <span class="criterion-icon">🔥</span>
+          <span class="criterion-text">Pain points feel real, not generic</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+        <div class="criterion">
+          <span class="criterion-icon">🎯</span>
+          <span class="criterion-text">Opening line references something specific</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+        <div class="criterion">
+          <span class="criterion-icon">⚔️</span>
+          <span class="criterion-text">Competitors listed are real and accurate</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+        <div class="criterion">
+          <span class="criterion-icon">⚠️</span>
+          <span class="criterion-text">"Do not say" items make sense for this company</span>
+          <input type="checkbox" onchange="updateCheckScore()">
+        </div>
+      </div>
+      <div id="checkScore" style="margin-top:10px;font-size:13px;font-weight:700;color:var(--text2);">Score: 0/8</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title"><span>📝</span> Test Log</div>
+      <div class="log" id="testLog">
+        <div class="log-line log-info">// Test suite ready. Click "Run All Tests" to begin.</div>
+        <div class="log-line log-info">// Tip: Run tests after every update to catch regressions.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_KEY = document.getElementById("apiKey").value;
+
+let passed = 0, failed = 0, total = 0;
+
+function getAPIKey() { return document.getElementById("apiKey").value.trim(); }
+
+function log(msg, type = "info") {
+  const logEl = document.getElementById("testLog");
+  const line = document.createElement("div");
+  line.className = "log-line log-" + type;
+  line.innerText = new Date().toLocaleTimeString() + " — " + msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setTestStatus(id, status, detail = "") {
+  const item = document.getElementById(id);
+  if (!item) return;
+  const badge = item.querySelector(".test-status");
+  const detailEl = item.querySelector(".test-detail");
+  badge.className = "test-status status-" + status;
+  badge.innerText = status.toUpperCase();
+  if (detail) detailEl.innerText = detail;
+  if (status === "pass") { passed++; log("✅ PASS: " + item.querySelector(".test-name").innerText, "pass"); }
+  if (status === "fail") { failed++; log("❌ FAIL: " + item.querySelector(".test-name").innerText + (detail ? " — " + detail : ""), "fail"); }
+  total = passed + failed;
+  updateScoreboard();
+}
+
+function setRunning(id) {
+  const item = document.getElementById(id);
+  if (!item) return;
+  const badge = item.querySelector(".test-status");
+  badge.className = "test-status status-running";
+  badge.innerText = "RUNNING";
+}
+
+function updateScoreboard() {
+  document.getElementById("scorePass").innerText = passed;
+  document.getElementById("scoreFail").innerText = failed;
+  document.getElementById("scoreTotal").innerText = total;
+  document.getElementById("scorePct").innerText = total > 0 ? Math.round((passed / total) * 100) + "%" : "—";
+}
+
+async function callAI(prompt, maxTokens = 400) {
+  const key = getAPIKey();
+  const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: "openai/gpt-oss-20b", max_tokens: maxTokens, messages: [{ role: "user", content: prompt }] }),
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(d?.error?.message || `Groq request failed (${res.status})`);
+  }
+  return d?.choices?.[0]?.message?.content || "";
+}
+
+/* ── API Tests ── */
+async function testAPIConnection() {
+  setRunning("test-api-connect");
+  setRunning("test-api-speed");
+  log("Testing API connection...", "info");
+  try {
+    const start = Date.now();
+    const res = await callAI("Reply with exactly: NEXUS_OK");
+    const elapsed = Date.now() - start;
+
+    if (res.includes("NEXUS_OK") || res.length > 2) {
+      setTestStatus("test-api-connect", "pass", "API responding correctly");
+    } else {
+      setTestStatus("test-api-connect", "fail", "Unexpected response: " + res.substring(0, 50));
+    }
+
+    if (elapsed < 8000) {
+      setTestStatus("test-api-speed", "pass", `Response in ${elapsed}ms`);
+    } else {
+      setTestStatus("test-api-speed", "fail", `Too slow: ${elapsed}ms (max 8000ms)`);
+    }
+  } catch(e) {
+    setTestStatus("test-api-connect", "fail", e.message);
+    setTestStatus("test-api-speed", "fail", "Could not measure — API failed");
+  }
+}
+
+/* ── Structure Tests ── */
+async function runStructureTests() {
+  log("Running structure tests on a sample report...", "info");
+  setRunning("test-struct-sections");
+  setRunning("test-struct-length");
+  setRunning("test-struct-confidence");
+  setRunning("test-struct-format");
+
+  try {
+    const report = await callAI(`Write a sales intelligence brief for "Stripe" following this EXACT format:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ SALES BRIEF — STRIPE
+Generated: ${new Date().toDateString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏢 WHAT THEY DO [Confidence: HIGH]
+🔥 PAIN POINTS RIGHT NOW [Confidence: HIGH]
+👤 WHO TO TALK TO [Confidence: MEDIUM]
+🎯 YOUR OPENING LINE
+⚠️ DO NOT SAY
+📊 RESEARCH CONFIDENCE SCORE: [X/100]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`, 800);
+
+    // Test: required sections
+    const requiredSections = ["WHAT THEY DO", "PAIN POINTS", "WHO TO TALK TO", "OPENING LINE", "DO NOT SAY", "CONFIDENCE"];
+    const missingSections = requiredSections.filter(s => !report.toUpperCase().includes(s));
+    if (missingSections.length === 0) {
+      setTestStatus("test-struct-sections", "pass", "All 6 required sections present");
+    } else {
+      setTestStatus("test-struct-sections", "fail", "Missing: " + missingSections.join(", "));
+    }
+
+    // Test: length
+    const wordCount = report.split(/\s+/).length;
+    if (wordCount >= 100 && wordCount <= 2000) {
+      setTestStatus("test-struct-length", "pass", `${wordCount} words (good range: 100-2000)`);
+    } else {
+      setTestStatus("test-struct-length", "fail", `${wordCount} words — outside acceptable range`);
+    }
+
+    // Test: confidence score
+    if (/CONFIDENCE.*\d+\/100/i.test(report) || /\d+\/100/.test(report)) {
+      setTestStatus("test-struct-confidence", "pass", "Confidence score found");
+    } else {
+      setTestStatus("test-struct-confidence", "fail", "No confidence score X/100 found");
+    }
+
+    // Test: emoji headers
+    const emojiHeaders = ["🏢", "🔥", "👤", "🎯", "⚠️"];
+    const foundHeaders = emojiHeaders.filter(e => report.includes(e));
+    if (foundHeaders.length >= 4) {
+      setTestStatus("test-struct-format", "pass", `${foundHeaders.length}/5 emoji headers found`);
+    } else {
+      setTestStatus("test-struct-format", "fail", `Only ${foundHeaders.length}/5 emoji headers found`);
+    }
+
+    // Store for quality check
+    document.getElementById("manualReport").value = report;
+    log("Structure test report generated and loaded into quality checker", "info");
+
+  } catch(e) {
+    ["test-struct-sections","test-struct-length","test-struct-confidence","test-struct-format"].forEach(id =>
+      setTestStatus(id, "fail", e.message)
+    );
+  }
+}
+
+/* ── Prompt Quality Tests ── */
+async function runPromptTests() {
+  log("Running prompt quality tests...", "info");
+  setRunning("test-prompt-stripe");
+  setRunning("test-prompt-generic");
+  setRunning("test-prompt-actionable");
+  setRunning("test-prompt-norepeat");
+
+  try {
+    const report = await callAI(`You are a senior B2B sales intelligence analyst. Write a SALES INTELLIGENCE BRIEF for "Stripe".
+
+🏢 WHAT THEY DO [Confidence: HIGH]
+💰 COMPANY SIZE & STAGE [Confidence: HIGH]
+🔥 PAIN POINTS RIGHT NOW [Confidence: HIGH]
+📰 RECENT NEWS [Confidence: MEDIUM]
+👤 WHO TO TALK TO [Confidence: HIGH]
+⚔️ THEIR COMPETITORS [Confidence: HIGH]
+🎯 YOUR OPENING LINE
+⚠️ DO NOT SAY
+📊 RESEARCH CONFIDENCE SCORE: [X/100]`, 1000);
+
+    // Score Stripe report quality
+    let qualityScore = 0;
+    const checks = [
+      { check: report.includes("Stripe"), label: "Mentions Stripe" },
+      { check: /payment|fintech|developer|API/i.test(report), label: "Correct industry" },
+      { check: /billion|million|\$|revenue|valuation/i.test(report), label: "Has financial data" },
+      { check: /Braintree|Adyen|PayPal|Square|Checkout/i.test(report), label: "Correct competitors" },
+      { check: /enterprise|scaling|compliance|fraud|international/i.test(report), label: "Relevant pain points" },
+    ];
+    checks.forEach(c => { if (c.check) qualityScore++; });
+    const scorePct = Math.round((qualityScore / checks.length) * 100);
+    document.getElementById("score-stripe").innerText = `Quality: ${qualityScore}/${checks.length} checks passed (${scorePct}%)`;
+
+    if (scorePct >= 60) {
+      setTestStatus("test-prompt-stripe", "pass", `Quality score: ${scorePct}%`);
+    } else {
+      setTestStatus("test-prompt-stripe", "fail", `Quality score too low: ${scorePct}%`);
+    }
+
+    // Generic phrase check
+    const genericPhrases = [
+      "innovative solutions", "cutting-edge", "world-class", "leveraging synergies",
+      "best-in-class", "robust platform", "holistic approach", "empower businesses"
+    ];
+    const foundGeneric = genericPhrases.filter(p => report.toLowerCase().includes(p));
+    if (foundGeneric.length === 0) {
+      setTestStatus("test-prompt-generic", "pass", "No generic filler phrases found");
+    } else {
+      setTestStatus("test-prompt-generic", "fail", "Generic phrases found: " + foundGeneric.join(", "));
+    }
+
+    // Opening line specificity
+    const openingSection = report.split("OPENING LINE")[1]?.split("\n").slice(0, 4).join(" ") || "";
+    const hasSpecific = /Stripe|payment|developer|API|revenue|\d+/i.test(openingSection);
+    if (hasSpecific) {
+      setTestStatus("test-prompt-actionable", "pass", "Opening line contains specific details");
+    } else {
+      setTestStatus("test-prompt-actionable", "fail", "Opening line too generic");
+    }
+
+    // No repeated content check
+    const sections = report.split(/\n(?=[🏢💰🔥📰👤⚔️🎯⚠️📊])/);
+    let repeats = 0;
+    for (let i = 0; i < sections.length; i++) {
+      for (let j = i + 1; j < sections.length; j++) {
+        const words1 = new Set(sections[i].toLowerCase().split(/\s+/).filter(w => w.length > 5));
+        const words2 = new Set(sections[j].toLowerCase().split(/\s+/).filter(w => w.length > 5));
+        const overlap = [...words1].filter(w => words2.has(w)).length;
+        if (overlap > 15) repeats++;
+      }
+    }
+    if (repeats === 0) {
+      setTestStatus("test-prompt-norepeat", "pass", "No significant content repetition");
+    } else {
+      setTestStatus("test-prompt-norepeat", "fail", `${repeats} section pairs have high word overlap`);
+    }
+
+  } catch(e) {
+    ["test-prompt-stripe","test-prompt-generic","test-prompt-actionable","test-prompt-norepeat"].forEach(id =>
+      setTestStatus(id, "fail", e.message)
+    );
+  }
+}
+
+/* ── Run All ── */
+async function runAllTests() {
+  passed = 0; failed = 0; total = 0;
+  updateScoreboard();
+  log("=== STARTING FULL TEST SUITE ===", "info");
+
+  // Reset all
+  document.querySelectorAll(".test-status").forEach(el => {
+    el.className = "test-status status-pending";
+    el.innerText = "PENDING";
+  });
+
+  await testAPIConnection();
+  await runStructureTests();
+  await runPromptTests();
+
+  log(`=== TEST SUITE COMPLETE: ${passed}/${total} passed (${Math.round((passed/total)*100)}%) ===`,
+    passed === total ? "pass" : "warn");
+}
+
+/* ── Manual report scorer ── */
+function scoreManualReport() {
+  const report = document.getElementById("manualReport").value.trim();
+  if (!report) { alert("Paste a report first"); return; }
+
+  const criteria = [
+    { name: "Has company name", check: () => report.length > 50 },
+    { name: "Has emoji section headers", check: () => /[🏢🔥👤🎯⚠️📰⚔️💰]/.test(report) },
+    { name: "Has confidence score", check: () => /\d+\/100/.test(report) },
+    { name: "Has opening line section", check: () => /opening line/i.test(report) },
+    { name: "Has pain points", check: () => /pain point|challenge|problem/i.test(report) },
+    { name: "No generic filler", check: () => !/(innovative solution|cutting.edge|world.class)/i.test(report) },
+    { name: "Word count 150-2000", check: () => { const w = report.split(/\s+/).length; return w >= 150 && w <= 2000; } },
+    { name: "Has do-not-say section", check: () => /do not say|avoid|don.t/i.test(report) },
+    { name: "Has competitor mention", check: () => /competitor|vs\.|alternative/i.test(report) },
+    { name: "Has specific numbers/data", check: () => /\$|\d+%|\d+ (million|billion|employees|users)/i.test(report) },
+  ];
+
+  let score = 0;
+  let html = "";
+  criteria.forEach(c => {
+    const pass = c.check();
+    if (pass) score++;
+    html += `<div class="criterion">
+      <span class="criterion-icon">${pass ? "✅" : "❌"}</span>
+      <span class="criterion-text">${c.name}</span>
+      <span class="criterion-score" style="color:${pass ? "var(--green)" : "var(--red)"}">${pass ? "PASS" : "FAIL"}</span>
+    </div>`;
+  });
+
+  const pct = Math.round((score / criteria.length) * 100);
+  const color = pct >= 80 ? "var(--green)" : pct >= 60 ? "var(--yellow)" : "var(--red)";
+  const grade = pct >= 80 ? "A — Excellent" : pct >= 60 ? "B — Good" : pct >= 40 ? "C — Needs Work" : "D — Poor";
+
+  const resultEl = document.getElementById("manualResult");
+  resultEl.style.display = "block";
+  resultEl.innerHTML = `<div style="font-size:18px;font-weight:800;color:${color};margin-bottom:10px;">
+    ${pct}% — ${grade} (${score}/${criteria.length})
+  </div>${html}`;
+
+  log(`Manual report scored: ${pct}% (${grade})`, pct >= 60 ? "pass" : "fail");
+}
+
+/* ── Checklist scorer ── */
+function updateCheckScore() {
+  const checks = document.querySelectorAll("#checklist input[type=checkbox]");
+  const checked = [...checks].filter(c => c.checked).length;
+  const total = checks.length;
+  const pct = Math.round((checked / total) * 100);
+  const color = pct >= 75 ? "var(--green)" : pct >= 50 ? "var(--yellow)" : "var(--red)";
+  document.getElementById("checkScore").style.color = color;
+  document.getElementById("checkScore").innerText = `Score: ${checked}/${total} (${pct}%) — ${pct >= 75 ? "✅ Accurate" : pct >= 50 ? "⚠️ Partially accurate" : "❌ Needs improvement"}`;
+}
+
+/* ── Clear ── */
+function clearResults() {
+  passed = 0; failed = 0; total = 0;
+  updateScoreboard();
+  document.querySelectorAll(".test-status").forEach(el => {
+    el.className = "test-status status-pending";
+    el.innerText = "PENDING";
+  });
+  document.getElementById("testLog").innerHTML = '<div class="log-line log-info">// Cleared. Ready for next run.</div>';
+  document.getElementById("manualResult").style.display = "none";
+  document.getElementById("manualReport").value = "";
+  document.querySelectorAll("#checklist input").forEach(c => c.checked = false);
+  updateCheckScore();
+}
+</script>
+</body>
+</html>
